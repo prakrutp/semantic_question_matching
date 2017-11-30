@@ -1,8 +1,8 @@
 import csv
 import re
 
-data_path = '../data/sample_data.tsv'
-# data_path = '../../../Data/quora_duplicate_questions.tsv'
+#data_path = '../data/sample_data.tsv'
+data_path = '../../Data/quora_duplicate_questions.tsv'
 
 def process_question(q):
 	clean_q = ''
@@ -36,8 +36,7 @@ def get_clean_data():
 			clean_data.append(q1 + '\t' + q2 + '\t' + duplicate)
 	return clean_data
 
-
-get_clean_data()
+clean_data = get_clean_data()
 
 
 

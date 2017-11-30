@@ -2,6 +2,11 @@ import pandas as pd
 import argparse
 import numpy as np
 from keras.preprocessing import sequence, text
+from keras.models import Sequential, Model
+from keras.layers import Dense, LSTM, Dropout, merge, Input 
+from keras.layers.embeddings import Embedding
+from keras.regularizers import l2
+from keras.callbacks import ModelCheckpoint
 
 EMBEDDING_LEN = 300
 
@@ -49,12 +54,32 @@ class Dataset():
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
 		return embedding_matrix
 
-class Model():
-	def __init__(self):
-		num_vocab = 
-		model = Sequential()
-		model.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, weights=[init_glove_matrix]))
-		model.add(LSTM(100, dropout_W=0.5, dropout_U=0.5))
+class SiameseModel():
+	def __init__(self, num_vocab, embedding_matrix, max_len):
+		lstm = Sequential()
+		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
+			weights=[embedding_matrix], input_length=max_len, trainable=False))
+		lstm.add(LSTM(128, dropout_W=0.5, dropout_U=0.5))
+		lstm.add(Dense(1, activation='sigmoid'))
+
+		l_input = Input(shape=(max_len,))
+		r_input = Input(shape=(max_len,))
+
+		l_output = lstm(l_input)
+		r_output = lstm(r_input)
+
+		merged_output = merge([l_output, r_output], mode='concat')
+
+		fcl = Dense(100, activation='relu', W_regularizer=l2(0.0001), \
+			b_regularizer=l2(0.0001))(merged_output)
+		fcl_drop = Dropout(0.4)(fcl)
+		prediction = Dense(1, activation='sigmoid')(fcl_drop)
+
+		model = Model(input=[l_input, r_input], output=prediction)
+		model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+		print(model.summary())
+		return model
+		
 
 ### Main function which trains the model, tests the model and report metrics
 def main(params):
@@ -69,18 +94,27 @@ def main(params):
 	# Storage reduction
 	train_data = None
 	print "Obtained processed training data"
-
 	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
+	print "Obtained embeddings"
 	num_vocab = len(Ds.word_index) + 1
+	model = SiameseModel(num_vocab, embedding_matrix, max_len_sentence)
+	print "Built Model"
+	X_dict = dict()
+	X_dict['l_input'] = X1_train
+	X_dict['r_input'] = X2_train
+	print "Training now..."
+	model.fit(x=X_dict, y=Y_train, batch_size=10, nb_epoch=10, \
+                 verbose=1, validation_split=0.2, shuffle=True)
+	# model.predict()
 
 	
 
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
-	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")
+	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../../Data/glove.840B.300d.txt")
 	params = vars(parser.parse_args())
 	main(params)

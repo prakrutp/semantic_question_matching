@@ -38,7 +38,7 @@ class Dataset():
 		X1 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
 		X2 = self.tokenizer.texts_to_sequences(inpdata.question2)
 		X2 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
-		Y = list(inpdata.is_duplicate)
+		Y = inpdata.is_duplicate
 		return X1,X2,Y
 
 	def create_embedding_matrix(self, embeddings_path):
@@ -55,12 +55,12 @@ class Dataset():
 		return embedding_matrix
 
 class SiameseModel():
-	def __init__(self, num_vocab, embedding_matrix, max_len):
+	def build_model(self, num_vocab, embedding_matrix, max_len):
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
 		lstm.add(LSTM(128, dropout_W=0.5, dropout_U=0.5))
-		lstm.add(Dense(1, activation='sigmoid'))
+		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
 		r_input = Input(shape=(max_len,))
@@ -96,15 +96,13 @@ def main(params):
 	print "Obtained processed training data"
 	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
 	print "Obtained embeddings"
-	num_vocab = len(Ds.word_index) + 1
-	model = SiameseModel(num_vocab, embedding_matrix, max_len_sentence)
+	num_vocab = len(Ds.word_to_idx) + 1
+
+	Sm = SiameseModel()
+	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
-	X_dict = dict()
-	X_dict['l_input'] = X1_train
-	X_dict['r_input'] = X2_train
 	print "Training now..."
-	model.fit(x=X_dict, y=Y_train, batch_size=10, nb_epoch=10, \
-                 verbose=1, validation_split=0.2, shuffle=True)
+	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=100, epochs=10, verbose=1, validation_split=0.2, shuffle=True)
 	# model.predict()
 
 	
@@ -115,6 +113,6 @@ if __name__=='__main__':
 	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
-	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../../Data/glove.840B.300d.txt")
+	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")
 	params = vars(parser.parse_args())
 	main(params)

@@ -59,7 +59,7 @@ class SiameseModel():
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(LSTM(128, dropout_W=0.5, dropout_U=0.5))
+		lstm.add(LSTM(256, dropout_W=0.5, dropout_U=0.5))
 		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
@@ -70,10 +70,11 @@ class SiameseModel():
 
 		merged_output = merge([l_output, r_output], mode='concat')
 
-		fcl = Dense(100, activation='relu', W_regularizer=l2(0.0001), \
-			b_regularizer=l2(0.0001))(merged_output)
-		fcl_drop = Dropout(0.4)(fcl)
-		prediction = Dense(1, activation='sigmoid')(fcl_drop)
+		fcl = Dense(100, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(merged_output)
+		fcl = Dense(50, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(fcl)
+		#fcl_drop = Dropout(0.4)(fcl)
+		fcl = Dense(25, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(fcl)
+		prediction = Dense(1, activation='sigmoid')(fcl)
 
 		model = Model(input=[l_input, r_input], output=prediction)
 		model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])

@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 from keras.preprocessing import sequence, text
 from keras.models import Sequential, Model
-from keras.layers import Dense, LSTM, Dropout, merge, Input 
+from keras.layers import Dense, LSTM, Dropout, merge, Input, Bidirectional
 from keras.layers.embeddings import Embedding
 from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
@@ -126,8 +126,8 @@ def main(params):
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	#parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	# parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

@@ -70,13 +70,13 @@ class Dataset():
 
 class SiameseModel():
 	def build_model(self, num_vocab, embedding_matrix, num_char_vocab, \
-					char_embedding_matrix, max_len_sentence):
+					char_embedding_matrix, max_len):
 		embed_word = Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False)
 
 		embed_c = Embedding(input_dim=num_char_vocab, output_dim=CHAR_LEN, \
 			weights=[char_embedding_matrix], input_length=max_len*6, trainable=True)
-		embed_char = Bidirectional(LSTM(100))(embed_c)
+		embed_char = Bidirectional(LSTM(100))
 
 		l_input = Input(shape=(max_len,))
 		r_input = Input(shape=(max_len,))
@@ -86,8 +86,10 @@ class SiameseModel():
 		l_input_processed = embed_word(l_input)
 		r_input_processed = embed_word(r_input)
 
-		l_c_input_processed = embed_char(l_c_input)
-		r_c_input_processed = embed_char(r_c_input)
+		l_c_input_processed_1 = embed_c(l_c_input)
+		l_c_input_processed = embed_char(l_c_input_processed_1)
+		r_c_input_processed_1 = embed_c(r_c_input)
+		r_c_input_processed = embed_char(r_c_input_processed_1)
 
 		l_input_merged = merge([l_input_processed, l_c_input_processed], mode='concat')
 		r_input_merged = merge([r_input_processed, r_c_input_processed], mode='concat')

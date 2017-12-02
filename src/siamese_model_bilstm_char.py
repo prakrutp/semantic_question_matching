@@ -141,7 +141,7 @@ def main(params):
 	filepath=model_path + "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
 	checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	callbacks_list = [checkpoint]
-	model.fit(x=[X1_train, X2_train, X1_c, X2_c], y=Y_train, batch_size=128, epochs=50, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
+	model.fit(x=[X1_train, X2_train, X1_c, X2_c], y=Y_train, batch_size=128, epochs=30, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
 
 	X1_test, X2_test, X1_ct, X2_ct, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
 	pred = model.predict([X1_test, X2_test, X1_ct, X2_ct], batch_size=32, verbose=0)

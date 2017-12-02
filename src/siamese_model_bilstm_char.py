@@ -10,6 +10,7 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.metrics import precision_recall_fscore_support as score
 
 EMBEDDING_LEN = 300
+CHAR_LEN = 100
 
 class Dataset():
 	tokenizer = None
@@ -23,6 +24,9 @@ class Dataset():
 		self.data.question2 = self.data.question2.astype(str)
 		self.tokenizer.fit_on_texts(list(self.data.question1) + list(self.data.question2))
 		self.word_to_idx = self.tokenizer.word_index
+		self.c_tokenizer = text.Tokenizer(char_level=True)
+		self.c_tokenizer.fit_on_texts(list(self.data.question1) + list(self.data.question2))
+		self.char_to_idx = self.c_tokenizer.word_index
 
 	def create_dataset(self, train_data_split):
 		total_data_instances = len(self.data)
@@ -42,8 +46,12 @@ class Dataset():
 		X1 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
 		X2 = self.tokenizer.texts_to_sequences(inpdata.question2)
 		X2 = sequence.pad_sequences(X2, maxlen=max_len_sentence)
+		X1_c = self.c_tokenizer.texts_to_sequences(inpdata.question1)
+		X1_c = sequence.pad_sequences(X1_c, maxlen=max_len_sentence*6)
+		X2_c = self.c_tokenizer.texts_to_sequences(inpdata.question2)
+		X2_c = sequence.pad_sequences(X2_c, maxlen=max_len_sentence*6)
 		Y = inpdata.is_duplicate
-		return X1,X2,Y
+		return X1,X2,X1_c,X2_c,Y
 
 	def create_embedding_matrix(self, embeddings_path):
 		embeddings = {}
@@ -56,21 +64,41 @@ class Dataset():
 		for key in self.word_to_idx:
 			if key in embeddings:
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
+			else:
+				embedding_matrix[self.word_to_idx[key]] = np.random.randint(-10000, high=10000, size=(300))/10000.0
+				print type(embeddings[key])
+				print embedding[key].shape
+				exit()
 		return embedding_matrix
 
 class SiameseModel():
-	def build_model(self, num_vocab, embedding_matrix, max_len):
-		lstm = Sequential()
-		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
-			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(Bidirectional(LSTM(256, dropout_W=0.5, dropout_U=0.5)))
-		lstm.add(Dense(100, activation='sigmoid'))
+	def build_model(self, num_vocab, embedding_matrix, num_char_vocab, \
+					char_embedding_matrix, max_len_sentence):
+		embed_word = Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
+			weights=[embedding_matrix], input_length=max_len, trainable=False)
+
+		embed_c = Embedding(input_dim=num_char_vocab, output_dim=CHAR_LEN, \
+			weights=[char_embedding_matrix], input_length=max_len*6, trainable=True)
+		embed_char = Bidirectional(LSTM(100))(embed_c)
 
 		l_input = Input(shape=(max_len,))
 		r_input = Input(shape=(max_len,))
+		l_c_input = Input(shape=(max_len*6,))
+		r_c_input = Input(shape=(max_len*6,))
 
-		l_output = lstm(l_input)
-		r_output = lstm(r_input)
+		l_input_processed = embed_word(l_input)
+		r_input_processed = embed_word(r_input)
+
+		l_c_input_processed = embed_char(l_c_input)
+		r_c_input_processed = embed_char(r_c_input)
+
+		l_input_merged = merge([l_input_processed, l_c_input_processed], mode='concat')
+		r_input_merged = merge([r_input_processed, r_c_input_processed], mode='concat')
+
+		#TODO - Check dropout
+		lstm_b = Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2))
+		l_output = lstm_b(l_input_merged)
+		r_output = lstm_b(r_input_merged)
 
 		merged_output = merge([l_output, r_output], mode='concat')
 
@@ -80,7 +108,7 @@ class SiameseModel():
 		fcl = Dense(25, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(fcl)
 		prediction = Dense(1, activation='sigmoid')(fcl)
 
-		model = Model(input=[l_input, r_input], output=prediction)
+		model = Model(input=[l_input, r_input, l_c_input, r_c_input], output=prediction)
 		model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 		print(model.summary())
 		return model
@@ -96,25 +124,28 @@ def main(params):
 
 	Ds = Dataset(datapath)
 	train_data, test_data = Ds.create_dataset(train_data_split)
-	X1_train, X2_train, Y_train = Ds.process_dataframe(train_data, max_len_sentence)
+	X1_train, X2_train, X1_c, X2_c, Y_train = Ds.process_dataframe(train_data, max_len_sentence)
 	# Storage reduction
 	train_data = None
 	print "Obtained processed training data"
 	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
+	char_embedding_matrix = np.random.randint(-10000, high=10000, size=(len(self.char_to_idx) + 1, CHAR_LEN))/10000.0
 	print "Obtained embeddings"
 	num_vocab = len(Ds.word_to_idx) + 1
+	num_char_vocab = len(Ds.char_to_idx) + 1
 
 	Sm = SiameseModel()
-	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
+	model = Sm.build_model(num_vocab, embedding_matrix,num_char_vocab, \
+					char_embedding_matrix, max_len_sentence)
 	print "Built Model"
 	print "Training now..."
 	filepath=model_path + "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
 	checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	callbacks_list = [checkpoint]
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=50, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
+	model.fit(x=[X1_train, X2_train, X1_c, X2_c], y=Y_train, batch_size=128, epochs=50, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
 
-	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
-	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
+	X1_test, X2_test, X1_ct, X2_ct, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
+	pred = model.predict([X1_test, X2_test, X1_ct, X2_ct], batch_size=32, verbose=0)
 	precision, recall, fscore, support = score(Y_test, pred.round(), labels=[0, 1])
 
 	print "Metrics on test dataset"
@@ -126,11 +157,11 @@ def main(params):
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	# parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	# parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
-	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")
+	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../../Data/glove.840B.300d.txt")
 	parser.add_argument("--model_path", dest="model_path", type=str, default="../models/")
 	params = vars(parser.parse_args())
 	main(params)

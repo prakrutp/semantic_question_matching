@@ -8,6 +8,7 @@ from keras.layers.embeddings import Embedding
 from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
 from sklearn.metrics import precision_recall_fscore_support as score
+from sklearn.metrics import confusion_matrix
 
 EMBEDDING_LEN = 300
 
@@ -41,7 +42,7 @@ class Dataset():
 		X1 = self.tokenizer.texts_to_sequences(inpdata.question1)
 		X1 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
 		X2 = self.tokenizer.texts_to_sequences(inpdata.question2)
-		X2 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
+		X2 = sequence.pad_sequences(X2, maxlen=max_len_sentence)
 		Y = inpdata.is_duplicate
 		return X1,X2,Y
 
@@ -63,7 +64,7 @@ class SiameseModel():
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(LSTM(256, dropout_W=0.5, dropout_U=0.5))
+		lstm.add(LSTM(256, dropout_W=0.2, dropout_U=0.2))
 		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
@@ -108,10 +109,10 @@ def main(params):
 	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
 	print "Training now..."
-	filepath=model_path + "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
+	filepath=model_path + "simple_lstm-{epoch:02d}-{val_acc:.2f}.hdf5"
 	checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 	callbacks_list = [checkpoint]
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=50, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
+	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=30, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
 
 	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
 	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
@@ -122,12 +123,13 @@ def main(params):
 	print('recall: {}'.format(recall))
 	print('fscore: {}'.format(fscore))
 	print('support: {}'.format(support))
+	print confusion_matrix(Y_test, pred.round())
 
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	#parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	#parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

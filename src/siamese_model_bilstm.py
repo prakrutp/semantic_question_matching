@@ -63,7 +63,7 @@ class SiameseModel():
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(Bidirectional(LSTM(256, dropout_W=0.5, dropout_U=0.5)))
+		lstm.add(Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2)))
 		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))

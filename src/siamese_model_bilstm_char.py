@@ -60,15 +60,15 @@ class Dataset():
 				values = line.split()
 				embedding = np.asarray(values[1:], dtype='float32')
 				embeddings[values[0]] = embedding
+				print type(embedding)
+				print embedding.shape
+				exit()
 		embedding_matrix = np.zeros((len(self.word_to_idx) + 1, EMBEDDING_LEN))
 		for key in self.word_to_idx:
 			if key in embeddings:
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
 			else:
 				embedding_matrix[self.word_to_idx[key]] = np.random.randint(-10000, high=10000, size=(300))/10000.0
-				print type(embeddings[key])
-				print embedding[key].shape
-				exit()
 		return embedding_matrix
 
 class SiameseModel():
@@ -157,11 +157,11 @@ def main(params):
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	# parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	# parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
-	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../../Data/glove.840B.300d.txt")
+	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")
 	parser.add_argument("--model_path", dest="model_path", type=str, default="../models/")
 	params = vars(parser.parse_args())
 	main(params)

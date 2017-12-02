@@ -60,15 +60,12 @@ class Dataset():
 				values = line.split()
 				embedding = np.asarray(values[1:], dtype='float32')
 				embeddings[values[0]] = embedding
-				print type(embedding)
-				print embedding.shape
-				exit()
 		embedding_matrix = np.zeros((len(self.word_to_idx) + 1, EMBEDDING_LEN))
 		for key in self.word_to_idx:
 			if key in embeddings:
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
 			else:
-				embedding_matrix[self.word_to_idx[key]] = np.random.randint(-10000, high=10000, size=(300))/10000.0
+				embedding_matrix[self.word_to_idx[key]] = np.random.randint(-10000, high=10000, size=(300,))/10000.0
 		return embedding_matrix
 
 class SiameseModel():
@@ -123,14 +120,14 @@ def main(params):
 	model_path = params["model_path"]
 
 	Ds = Dataset(datapath)
+	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
+	char_embedding_matrix = np.random.randint(-10000, high=10000, size=(len(self.char_to_idx) + 1, CHAR_LEN))/10000.0
+	print "Obtained embeddings"
 	train_data, test_data = Ds.create_dataset(train_data_split)
 	X1_train, X2_train, X1_c, X2_c, Y_train = Ds.process_dataframe(train_data, max_len_sentence)
 	# Storage reduction
 	train_data = None
 	print "Obtained processed training data"
-	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
-	char_embedding_matrix = np.random.randint(-10000, high=10000, size=(len(self.char_to_idx) + 1, CHAR_LEN))/10000.0
-	print "Obtained embeddings"
 	num_vocab = len(Ds.word_to_idx) + 1
 	num_char_vocab = len(Ds.char_to_idx) + 1
 

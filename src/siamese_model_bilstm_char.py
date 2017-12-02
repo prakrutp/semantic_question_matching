@@ -121,7 +121,7 @@ def main(params):
 
 	Ds = Dataset(datapath)
 	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
-	char_embedding_matrix = np.random.randint(-10000, high=10000, size=(len(self.char_to_idx) + 1, CHAR_LEN))/10000.0
+	char_embedding_matrix = np.random.randint(-10000, high=10000, size=(len(Ds.char_to_idx) + 1, CHAR_LEN))/10000.0
 	print "Obtained embeddings"
 	train_data, test_data = Ds.create_dataset(train_data_split)
 	X1_train, X2_train, X1_c, X2_c, Y_train = Ds.process_dataframe(train_data, max_len_sentence)

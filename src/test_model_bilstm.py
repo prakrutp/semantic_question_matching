@@ -43,7 +43,7 @@ class Dataset():
 		X1 = self.tokenizer.texts_to_sequences(inpdata.question1)
 		X1 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
 		X2 = self.tokenizer.texts_to_sequences(inpdata.question2)
-		X2 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
+		X2 = sequence.pad_sequences(X2, maxlen=max_len_sentence)
 		Y = inpdata.is_duplicate
 		return X1,X2,Y
 
@@ -65,7 +65,7 @@ class SiameseModel():
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(Bidirectional(LSTM(256, dropout_W=0.5, dropout_U=0.5)))
+		lstm.add(Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2)))
 		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
@@ -126,8 +126,8 @@ def main(params):
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	#parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	#parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

@@ -108,11 +108,14 @@ def main(params):
 	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
 	print "Training now..."
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=15, verbose=1, validation_split=0.2, shuffle=True, callbacks=None)
+	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=30, verbose=1, validation_split=0.2, shuffle=True, callbacks=None)
 
 	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
 	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
 	precision, recall, fscore, support = score(Y_test, pred.round(), labels=[0, 1])
+	fid = open("pred.txt","w")
+	fid.write(",".join([str(i) for i in pred])+"\n")
+	fid.close()
 
 	print "Metrics on test dataset"
 	print('precision: {}'.format(precision))
@@ -124,8 +127,8 @@ def main(params):
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	#parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	#parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
+	parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

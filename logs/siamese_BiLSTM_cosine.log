@@ -1,0 +1,109 @@
+Using TensorFlow backend.
+2017-12-03 00:46:29.180115: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-12-03 00:46:29.180157: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-12-03 00:46:29.180166: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2017-12-03 00:46:29.180194: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-12-03 00:46:29.180205: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2017-12-03 00:46:29.323572: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-12-03 00:46:29.324268: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties:
+name: Tesla K80
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235
+pciBusID 0000:00:04.0
+Total memory: 11.17GiB
+Free memory: 11.09GiB
+2017-12-03 00:46:29.324298: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0
+2017-12-03 00:46:29.324311: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y
+2017-12-03 00:46:29.324333: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K80, pci bus id: 0000:00:04.0)
+Number of train data instances read 323432
+Number of test data instances read 80858
+Obtained processed training data
+Obtained embeddings
+2017-12-03 00:47:18.986080: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K80, pci bus id: 0000:00:04.0)
+siamese_model_lstm_cosine.py:73: UserWarning: Update your `LSTM` call to the Keras 2 API: `LSTM(256, dropout=0.2, recurrent_dropout=0.2)`
+  lstm.add(Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2)))
+siamese_model_lstm_cosine.py:82: UserWarning: The `merge` function is deprecated and will be removed after 08/2017. Use instead layers from `keras.layers.merge`, e.g. `add`, `concatenate`, etc.
+  cos_similarity = merge([l_output, r_output], mode=self.cosine, output_shape=lambda x: (x[:-1], 1))
+/home/prakrutp/.local/lib/python2.7/site-packages/keras/legacy/layers.py:458: UserWarning: The `Merge` layer is deprecated and will be removed after 08/2017. Use instead layers from `keras.layers.merge`, e.g. `add`, `concatenate`, etc.
+  name=name)
+siamese_model_lstm_cosine.py:84: UserWarning: Update your `Model` call to the Keras 2 API: `Model(outputs=[<tf.Tenso..., inputs=[<tf.Tenso...)`
+  model = Model(input=[l_input, r_input], output=[cos_similarity])
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to
+==================================================================================================
+input_1 (InputLayer)            (None, 40)           0
+__________________________________________________________________________________________________
+input_2 (InputLayer)            (None, 40)           0
+__________________________________________________________________________________________________
+sequential_1 (Sequential)       (None, 100)          29873236    input_1[0][0]
+                                                                 input_2[0][0]
+__________________________________________________________________________________________________
+merge_1 (Merge)                 ([(None, 100)], 1)   0           sequential_1[1][0]
+                                                                 sequential_1[2][0]
+==================================================================================================
+Total params: 29,873,236
+Trainable params: 1,192,036
+Non-trainable params: 28,681,200
+__________________________________________________________________________________________________
+None
+Built Model
+Training now...
+Train on 258745 samples, validate on 64687 samples
+Epoch 1/25
+258745/258745 [==============================] - 620s 2ms/step - loss: 0.2860 - acc: 0.5855 - val_loss: 0.2796 - val_acc: 0.6111
+Epoch 2/25
+258745/258745 [==============================] - 615s 2ms/step - loss: 0.2339 - acc: 0.6501 - val_loss: 0.2488 - val_acc: 0.6498
+Epoch 3/25
+258745/258745 [==============================] - 618s 2ms/step - loss: 0.2083 - acc: 0.6896 - val_loss: 0.2273 - val_acc: 0.6797
+Epoch 4/25
+258745/258745 [==============================] - 609s 2ms/step - loss: 0.1943 - acc: 0.7108 - val_loss: 0.2114 - val_acc: 0.6966
+Epoch 5/25
+258745/258745 [==============================] - 601s 2ms/step - loss: 0.1860 - acc: 0.7251 - val_loss: 0.1998 - val_acc: 0.7145
+Epoch 6/25
+258745/258745 [==============================] - 609s 2ms/step - loss: 0.1771 - acc: 0.7386 - val_loss: 0.1970 - val_acc: 0.7181
+Epoch 7/25
+258745/258745 [==============================] - 615s 2ms/step - loss: 0.1702 - acc: 0.7509 - val_loss: 0.1883 - val_acc: 0.7313
+Epoch 8/25
+258745/258745 [==============================] - 613s 2ms/step - loss: 0.1651 - acc: 0.7597 - val_loss: 0.1832 - val_acc: 0.7398
+Epoch 9/25
+258745/258745 [==============================] - 607s 2ms/step - loss: 0.1608 - acc: 0.7659 - val_loss: 0.1783 - val_acc: 0.7466
+Epoch 10/25
+258745/258745 [==============================] - 605s 2ms/step - loss: 0.1572 - acc: 0.7730 - val_loss: 0.1762 - val_acc: 0.7494
+Epoch 11/25
+258745/258745 [==============================] - 616s 2ms/step - loss: 0.1528 - acc: 0.7799 - val_loss: 0.1750 - val_acc: 0.7520
+Epoch 12/25
+258745/258745 [==============================] - 618s 2ms/step - loss: 0.1487 - acc: 0.7871 - val_loss: 0.1710 - val_acc: 0.7568
+Epoch 13/25
+258745/258745 [==============================] - 616s 2ms/step - loss: 0.1459 - acc: 0.7915 - val_loss: 0.1666 - val_acc: 0.7636
+Epoch 14/25
+258745/258745 [==============================] - 611s 2ms/step - loss: 0.1426 - acc: 0.7975 - val_loss: 0.1673 - val_acc: 0.7618
+Epoch 15/25
+258745/258745 [==============================] - 609s 2ms/step - loss: 0.1402 - acc: 0.8020 - val_loss: 0.1674 - val_acc: 0.7593
+Epoch 16/25
+258745/258745 [==============================] - 610s 2ms/step - loss: 0.1370 - acc: 0.8079 - val_loss: 0.1635 - val_acc: 0.7690
+Epoch 17/25
+258745/258745 [==============================] - 632s 2ms/step - loss: 0.1350 - acc: 0.8104 - val_loss: 0.1646 - val_acc: 0.7666
+Epoch 18/25
+258745/258745 [==============================] - 632s 2ms/step - loss: 0.1322 - acc: 0.8152 - val_loss: 0.1607 - val_acc: 0.7717
+Epoch 19/25
+258745/258745 [==============================] - 629s 2ms/step - loss: 0.1304 - acc: 0.8185 - val_loss: 0.1607 - val_acc: 0.7717
+Epoch 20/25
+258745/258745 [==============================] - 602s 2ms/step - loss: 0.1287 - acc: 0.8206 - val_loss: 0.1590 - val_acc: 0.7743
+Epoch 21/25
+258745/258745 [==============================] - 598s 2ms/step - loss: 0.1279 - acc: 0.8222 - val_loss: 0.1585 - val_acc: 0.7750
+Epoch 22/25
+258745/258745 [==============================] - 622s 2ms/step - loss: 0.1268 - acc: 0.8247 - val_loss: 0.1570 - val_acc: 0.7775
+Epoch 23/25
+258745/258745 [==============================] - 623s 2ms/step - loss: 0.1252 - acc: 0.8268 - val_loss: 0.1572 - val_acc: 0.7778
+Epoch 24/25
+258745/258745 [==============================] - 624s 2ms/step - loss: 0.1234 - acc: 0.8297 - val_loss: 0.1569 - val_acc: 0.7784
+Epoch 25/25
+258745/258745 [==============================] - 608s 2ms/step - loss: 0.1222 - acc: 0.8321 - val_loss: 0.1537 - val_acc: 0.7818
+
+Metrics on test dataset
+precision: [ 0.87258336  0.67598031]
+recall: [ 0.77258451  0.80789544]
+fscore: [ 0.8195448   0.73607431]
+support: [50942 29916]
+[[39357 11585]
+ [ 5747 24169]]
+Accuracy = (39357.0+24169.0)/(39357.0+24169.0+11585.0+5747.0) = 0.78564891538

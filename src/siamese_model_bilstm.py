@@ -53,9 +53,12 @@ class Dataset():
 				embedding = np.asarray(values[1:], dtype='float32')
 				embeddings[values[0]] = embedding
 		embedding_matrix = np.zeros((len(self.word_to_idx) + 1, EMBEDDING_LEN))
+		present = 0.0
 		for key in self.word_to_idx:
 			if key in embeddings:
+				present += 1
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
+		print "Present ratio: ", present/len(self.word_to_idx)
 		return embedding_matrix
 
 class SiameseModel():

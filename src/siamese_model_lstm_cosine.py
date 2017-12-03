@@ -3,10 +3,10 @@ import argparse
 import numpy as np
 from keras.preprocessing import sequence, text
 from keras.models import Sequential, Model
-from keras.layers import Dense, LSTM, Dropout, Merge, Input, Bidirectional, Lambda
+from keras.layers import Dense, LSTM, Dropout, merge, Input, Bidirectional, Dot
 from keras.layers.embeddings import Embedding
-from keras.optimizers import Adadelta
 import keras.backend as K
+from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
 from sklearn.metrics import precision_recall_fscore_support as score
 from sklearn.metrics import confusion_matrix
@@ -43,7 +43,7 @@ class Dataset():
 		X1 = self.tokenizer.texts_to_sequences(inpdata.question1)
 		X1 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
 		X2 = self.tokenizer.texts_to_sequences(inpdata.question2)
-		X2 = sequence.pad_sequences(X1, maxlen=max_len_sentence)
+		X2 = sequence.pad_sequences(X2, maxlen=max_len_sentence)
 		Y = inpdata.is_duplicate
 		return X1,X2,Y
 
@@ -61,19 +61,16 @@ class Dataset():
 		return embedding_matrix
 
 class SiameseModel():
-	def exponent_neg_manhattan_distance(self, left, right):
-		return K.exp(-K.sum(K.abs(left-right), axis=1, keepdims=True))
-
-	def cosine_distance(self, left, right):
-		left = K.l2_normalize(left, axis=-1)
-		right = K.l2_normalize(right, axis=-1)
-		return -K.mean(left * right, axis=-1, keepdims=True)
+	def cosine(self, x):
+		axis = len(x[0]._keras_shape)-1
+		dot = lambda a, b: K.batch_dot(a, b, axes=axis)
+		return dot(x[0], x[1]) / K.sqrt(dot(x[0], x[0]) * dot(x[1], x[1]))
 
 	def build_model(self, num_vocab, embedding_matrix, max_len):
 		lstm = Sequential()
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
-		lstm.add(Bidirectional(LSTM(256, dropout_W=0.5, dropout_U=0.5)))
+		lstm.add(Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2)))
 		lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
@@ -82,13 +79,12 @@ class SiameseModel():
 		l_output = lstm(l_input)
 		r_output = lstm(r_input)
 
-		cos_similarity = Merge(mode=lambda x: self.exponent_neg_manhattan_distance(x[0], x[1]), output_shape=lambda x: (x[0][0], 1))([l_output, r_output])
+		cos_similarity = merge([l_output, r_output], mode=self.cosine, output_shape=lambda x: (x[:-1], 1))
 
 		model = Model(input=[l_input, r_input], output=[cos_similarity])
-		model.compile(loss='mean_squared_error', optimizer=Adadelta(clipnorm=1.25), metrics=['accuracy'])
+		model.compile(loss="mean_squared_error", optimizer="adam", metrics=["accuracy"])
 		print(model.summary())
 		return model
-		
 
 ### Main function which trains the model, tests the model and report metrics
 def main(params):
@@ -112,7 +108,7 @@ def main(params):
 	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
 	print "Training now..."
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=30, verbose=1, validation_split=0.2, shuffle=True)
+	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=15, verbose=1, validation_split=0.2, shuffle=True, callbacks=None)
 
 	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
 	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
@@ -129,7 +125,7 @@ if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	# parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	#parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

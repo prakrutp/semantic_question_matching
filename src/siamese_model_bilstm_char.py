@@ -91,6 +91,7 @@ class SiameseModel():
 		r_c_input_processed_1 = embed_c(r_c_input)
 		r_c_input_processed = embed_char(r_c_input_processed_1)
 
+		# None, 40, 300        None, 200
 		l_input_merged = merge([l_input_processed, l_c_input_processed], mode='concat')
 		r_input_merged = merge([r_input_processed, r_c_input_processed], mode='concat')
 

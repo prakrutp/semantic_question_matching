@@ -11,6 +11,8 @@ from keras import backend as K
 from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint
 from sklearn.metrics import precision_recall_fscore_support as score
+from keras.models import load_model
+from sklearn.metrics import confusion_matrix
 
 EMBEDDING_LEN = 300
 
@@ -56,12 +58,9 @@ class Dataset():
 				embedding = np.asarray(values[1:], dtype='float32')
 				embeddings[values[0]] = embedding
 		embedding_matrix = np.zeros((len(self.word_to_idx) + 1, EMBEDDING_LEN))
-		present = 0.0
 		for key in self.word_to_idx:
 			if key in embeddings:
-				present += 1
 				embedding_matrix[self.word_to_idx[key]] = embeddings[key]
-		print "Present ratio: ", present/len(self.word_to_idx)
 		return embedding_matrix
 
 class AttentionLayer(Layer):
@@ -128,22 +127,32 @@ def main(params):
 	# Storage reduction
 	train_data = None
 	print "Obtained processed training data"
-	embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
+	#embedding_matrix = Ds.create_embedding_matrix(embeddings_path)
 	print "Obtained embeddings"
 	num_vocab = len(Ds.word_to_idx) + 1
 
-	Sm = SiameseModel()
-	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
+	#Sm = SiameseModel()
+	#model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
-	print "Training now..."
-	filepath=model_path + "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
-	checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-	callbacks_list = [checkpoint]
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=20, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
-
-	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
-	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
-	precision, recall, fscore, support = score(Y_test, pred.round(), labels=[0, 1])
+	print "Loading trained now..."
+	#model = load_model(model_path, custom_objects={'AttentionLayer': AttentionLayer})
+	#X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
+	Y_test = list(test_data.is_duplicate)
+	X1_test = list(test_data.question1)
+	X2_test = list(test_data.question2)
+	#pred = model.predict([X1_test, X2_test], batch_size=32, verbose=1)
+	pred = []
+	with open("pred.txt", "r") as f:
+		for line in f:
+			line = line.strip("\n").strip()
+			pred.append(round(float(line)))
+	precision, recall, fscore, support = score(Y_test, pred, labels=[0, 1])
+	print "Writing errors"
+	fid = open("Errors.txt", "w")
+	for i in range(len(pred)):
+		if int(pred[i])!=int(Y_test[i]):
+			fid.write(str(X1_test[i]) + "\t" + str(X2_test[i]) + "\t" + str(Y_test[i]) + "\n")
+	fid.close()
 
 	print "Metrics on test dataset"
 	print('precision: {}'.format(precision))
@@ -151,11 +160,13 @@ def main(params):
 	print('fscore: {}'.format(fscore))
 	print('support: {}'.format(support))
 
+	print confusion_matrix(Y_test, pred)
+
 if __name__=='__main__':
 	### Read user inputs
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--datapath", dest="datapath", type=str, default="../../Data/quora_duplicate_questions.tsv")
-	# parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
+	#parser.add_argument("--datapath", dest="datapath", type=str, default="../data/sample_data.tsv")
 	parser.add_argument("--train_data_split", dest="train_data_split", type=float, default=0.8)
 	parser.add_argument("--max_len_sentence", dest="max_len_sentence", type=int, default=40)
 	parser.add_argument("--embeddings_path", dest="embeddings_path", type=str, default="../../Data/glove.840B.300d.txt")

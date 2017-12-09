@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 from keras.preprocessing import sequence, text
 from keras.models import Sequential, Model
-from keras.layers import Dense, LSTM, Dropout, merge, Input, Bidirectional, TimeDistributed
+from keras.layers import Dense, LSTM, Dropout, merge, Input, Bidirectional, TimeDistributed, concatenate
 from keras.layers.embeddings import Embedding
 from keras.engine.topology import Layer
 from keras import initializers
@@ -73,7 +73,8 @@ class AttentionLayer(Layer):
 		super(AttentionLayer, self).build(input_shape)
 
 	def call(self, x):
-		et = TimeDistributed(Dense(1, activation="tanh"), input_shape=(40, 512))(x)		
+		et1 = TimeDistributed(Dense(200, activation="tanh"), input_shape=(80, 512))(x)
+		et = TimeDistributed(Dense(1, activation="tanh"), input_shape=(80, 200))(x)
 		alphat = K.exp(et)
 		weights = alphat / K.cast(K.sum(alphat, axis=1, keepdims=True) + K.epsilon(), K.floatx())
 		weighted_input = x*weights
@@ -91,8 +92,6 @@ class SiameseModel():
 		lstm.add(Embedding(input_dim=num_vocab, output_dim=EMBEDDING_LEN, \
 			weights=[embedding_matrix], input_length=max_len, trainable=False))
 		lstm.add(Bidirectional(LSTM(256, dropout_W=0.2, dropout_U=0.2, return_sequences=True)))
-		lstm.add(AttentionLayer())
-		#lstm.add(Dense(100, activation='sigmoid'))
 
 		l_input = Input(shape=(max_len,))
 		r_input = Input(shape=(max_len,))
@@ -100,7 +99,8 @@ class SiameseModel():
 		l_output = lstm(l_input)
 		r_output = lstm(r_input)
 
-		merged_output = merge([l_output, r_output], mode='concat')
+		merged_input = concatenate([l_output, r_output], axis=1)
+		merged_output = AttentionLayer()(merged_input)
 
 		fcl = Dense(500, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(merged_output)
 		fcl = Dense(100, activation='relu', W_regularizer=l2(0.0001), b_regularizer=l2(0.0001))(fcl)
@@ -136,10 +136,7 @@ def main(params):
 	model = Sm.build_model(num_vocab, embedding_matrix, max_len_sentence)
 	print "Built Model"
 	print "Training now..."
-	filepath=model_path + "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
-	checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-	callbacks_list = [checkpoint]
-	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=20, verbose=1, validation_split=0.2, shuffle=True, callbacks=callbacks_list)
+	model.fit(x=[X1_train, X2_train], y=Y_train, batch_size=128, epochs=20, verbose=1, validation_split=0.2, shuffle=True, callbacks=None)
 
 	X1_test, X2_test, Y_test = Ds.process_dataframe(test_data, max_len_sentence)
 	pred = model.predict([X1_test, X2_test], batch_size=32, verbose=0)
